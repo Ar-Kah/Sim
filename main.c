@@ -1,4 +1,6 @@
 # include "raylib.h"
+
+// This function draws a white background with red rectangle
 void draw_stuff() {
     ClearBackground(RAYWHITE);
     DrawRectangle(100, 100, 100, 100, RED);
