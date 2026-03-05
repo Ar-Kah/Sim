@@ -58,18 +58,19 @@ void update_physics(Sun *sun, Planet *planet, double deltaTime) {
     planet->coords.z += planet->velocity.z * deltaTime;
 }
 
-void draw_stuff(Sun *sun, Planet *planet, Camera3D camera) {
-    ClearBackground(RAYWHITE);
+void draw_stuff(Sun *sun, Planet *earth, Planet* venus, Camera3D camera) {
+    ClearBackground(BLACK);
 
     // Enter 3D mode using the camera
     BeginMode3D(camera);
         
         // Draw your 3D object
         DrawSphere(sun->coords, sun->radius, RED);
-        DrawSphere(planet->coords, planet->radius, BLUE);
+        DrawSphere(earth->coords, earth->radius, BLUE);
+        DrawSphere(venus->coords, venus->radius, BROWN);
         
         // Helpful for orientation: draws a grid on the ground
-        DrawGrid(10, 1.0f); 
+        /* DrawGrid(10, 1.0f);  */
 
     EndMode3D();
 
@@ -80,19 +81,25 @@ void draw_stuff(Sun *sun, Planet *planet, Camera3D camera) {
 void draw_window() {
     Sun sun = {
         .coords = { 0.0f, 2.0f, 0.0f }, // Sun at the center
-        .radius = 0.5f,
+        .radius = 0.7f,
         .M = 10000 
     };
 
-    Planet planet = {
+    Planet earth = {
         .coords = { 10.0f, 5.0f, 0.0f },  // 5 units to the right
-        .velocity = { 15.0f, 0.0f, 15.0f }, // Kick it "forward" (Z axis)
-        .radius = 0.2f,
-        .M = SUN_MASS / 30000
+        .velocity = { 25.0f, 0.0f, 25.0f }, // Kick it "forward" (Z axis)
+        .radius = 0.4f,
+        .M = 10
     };
+    Planet venus = {
+        .coords = { -22.f, -2.5f, -1.0f },
+        .velocity = { -15.0f, 0.0f, -15.0f }, // Kick it "forward" (Z axis)
+        .radius = 0.3f,
+        .M = 7
+};
     // Initialize the Camera
     Camera3D camera = { 0 };
-    camera.position = (Vector3){ 20.0f, 20.0f, 20.0f }; // Where the camera is
+    camera.position = (Vector3){ 30.0f, 30.0f, 30.0f }; // Where the camera is
     camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };      // What the camera looks at
     camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Rotation of the camera (usually Y is up)
     camera.fovy = 45.0f;                                // Field of view
@@ -104,19 +111,18 @@ void draw_window() {
         // Optional: Update camera to rotate around the center
         double delta = GetFrameTime();
         UpdateCamera(&camera, CAMERA_ORBITAL); 
-        update_physics(&sun, &planet, delta);
-
-        printf("%f %f %f\n", planet.coords.x, planet.coords.y, planet.coords.z);
+        update_physics(&sun, &earth,  delta);
+        update_physics(&sun, &venus,  delta);
 
         BeginDrawing();
-            draw_stuff(&sun, &planet, camera);
+            draw_stuff(&sun, &earth, &venus, camera);
         EndDrawing();
     }
 }
 
 int main(void) {
     InitWindow(800, 500, "Raylib 3D Test");
-    SetTargetFPS(60);
+    SetTargetFPS(144);
 
     draw_window();
 
