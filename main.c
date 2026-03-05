@@ -1,20 +1,72 @@
 #include "raylib.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#define SUN_MASS 100000
+
+/* const double G =  */
+const double G = 6.67408e-11; // in SI units (m³/kg/s²)
+
 
 typedef struct {
     Vector3 coords;
-    Vector3 rotation;
-    float angle;
+    int M;
+    double radius;
 } Sun;
 
-void draw_stuff(Sun *sun, Camera3D camera) {
+typedef struct {
+    Vector3 coords;
+    Vector3 velocity;
+    int M;
+    double radius;
+} Planet;
 
+void update_physics(Sun *sun, Planet *planet, double deltaTime) {
+    // 1. Get the vector pointing from Planet to Sun
+    Vector3 direction = {
+        sun->coords.x - planet->coords.x,
+        sun->coords.y - planet->coords.y,
+        sun->coords.z - planet->coords.z
+    };
+
+    // 2. Get the TOTAL distance squared
+    // Formula: r^2 = x^2 + y^2 + z^2
+    double distSq = (direction.x * direction.x) + 
+                    (direction.y * direction.y) + 
+                    (direction.z * direction.z);
+    
+    // Safety check: if distance is too small, skip to avoid division by zero
+    if (distSq < 0.01) return; 
+
+    double dist = sqrt(distSq);
+
+    // 3. Calculate total acceleration magnitude: a = (G * M) / r^2
+    // Use a much larger G for the simulation to actually move
+    double simG = 1; 
+    double accelerationMag = (simG * sun->M) / distSq;
+
+    // 4. Update velocity: change = direction_unit_vector * acceleration * time
+    // We += here so the planet "remembers" its previous speed!
+    planet->velocity.x += (direction.x / dist) * accelerationMag * deltaTime;
+    planet->velocity.y += (direction.y / dist) * accelerationMag * deltaTime;
+    planet->velocity.z += (direction.z / dist) * accelerationMag * deltaTime;
+
+    // 5. Update position
+    planet->coords.x += planet->velocity.x * deltaTime;
+    planet->coords.y += planet->velocity.y * deltaTime;
+    planet->coords.z += planet->velocity.z * deltaTime;
+}
+
+void draw_stuff(Sun *sun, Planet *planet, Camera3D camera) {
     ClearBackground(RAYWHITE);
 
     // Enter 3D mode using the camera
     BeginMode3D(camera);
         
         // Draw your 3D object
-        DrawSphere(sun->coords, 2.0f, RED);
+        DrawSphere(sun->coords, sun->radius, RED);
+        DrawSphere(planet->coords, planet->radius, BLUE);
         
         // Helpful for orientation: draws a grid on the ground
         DrawGrid(10, 1.0f); 
@@ -27,26 +79,37 @@ void draw_stuff(Sun *sun, Camera3D camera) {
 
 void draw_window() {
     Sun sun = {
-        .coords = { 0, 2.0f, 0 }, // Moved closer to center for visibility
-        .rotation = { 1, 0, 0 },
-        .angle = 0.0f
+        .coords = { 0.0f, 2.0f, 0.0f }, // Sun at the center
+        .radius = 0.5f,
+        .M = 10000 
     };
 
+    Planet planet = {
+        .coords = { 10.0f, 5.0f, 0.0f },  // 5 units to the right
+        .velocity = { 15.0f, 0.0f, 15.0f }, // Kick it "forward" (Z axis)
+        .radius = 0.2f,
+        .M = SUN_MASS / 30000
+    };
     // Initialize the Camera
     Camera3D camera = { 0 };
-    camera.position = (Vector3){ 10.0f, 10.0f, 10.0f }; // Where the camera is
+    camera.position = (Vector3){ 20.0f, 20.0f, 20.0f }; // Where the camera is
     camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };      // What the camera looks at
     camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Rotation of the camera (usually Y is up)
     camera.fovy = 45.0f;                                // Field of view
     camera.projection = CAMERA_PERSPECTIVE;             // Perspective or Orthographic
 
+
     while(!WindowShouldClose())
     {
         // Optional: Update camera to rotate around the center
-        UpdateCamera(&camera, CAMERA_PERSPECTIVE); 
+        double delta = GetFrameTime();
+        UpdateCamera(&camera, CAMERA_ORBITAL); 
+        update_physics(&sun, &planet, delta);
+
+        printf("%f %f %f\n", planet.coords.x, planet.coords.y, planet.coords.z);
 
         BeginDrawing();
-            draw_stuff(&sun, camera);
+            draw_stuff(&sun, &planet, camera);
         EndDrawing();
     }
 }
